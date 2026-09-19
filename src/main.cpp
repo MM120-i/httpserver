@@ -10,7 +10,6 @@
 namespace {
     constexpr unsigned short k_port = 8000;
     constexpr int k_backlog = 16;
-    constexpr int k_buff_size = 4090;
 
     const std::string_view k_response =
         "HTTP/1.1 200 OK\r\n"
@@ -49,7 +48,7 @@ int main(){
             continue;
         }
 
-        char buf[k_buff_size];
+        char buf[4096];
         const ssize_t bytes_received = recv(client.get(), buf, sizeof(buf), 0);
 
         if(bytes_received <= 0){

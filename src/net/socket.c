@@ -1,13 +1,25 @@
-#include "../net/socket.h"
+#include "socket.h"
 
 #include <errno.h>
 #include <netinet/in.h>
-#include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 int tcp_create(void){
-    return socket(AF_INET, SOCK_STREAM, 0);
+    const int fd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if(fd == -1){
+        return -1;
+    }
+
+#ifdef SO_NOSIGPIPE
+    // macOS/BSD have no MSG_NOSIGNAL: suppress SIGPIPE per-socket instead.
+    // (A write to a closed socket would otherwise kill the process.)
+    const int one = 1;
+    setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
+#endif
+
+    return fd;
 }
 
 int tcp_set_reuseaddr(int socket_fd){
@@ -53,7 +65,12 @@ int tcp_send_all(int socket_fd, const char *buf, size_t len){
     size_t sent = 0;
 
     while(sent < len){
-        const ssize_t n = send(socket_fd, buf + sent, len - sent, MSG_NOSIGNAL);
+#ifdef MSG_NOSIGNAL
+        const int flags = MSG_NOSIGNAL;  // Linux: suppress SIGPIPE for this send.
+#else
+        const int flags = 0;  // macOS: already covered by SO_NOSIGPIPE in tcp_create().
+#endif
+        const ssize_t n = send(socket_fd, buf + sent, len - sent, flags);
 
         if(n <= 0){
             return -1;

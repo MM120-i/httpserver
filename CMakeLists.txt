@@ -20,3 +20,5 @@ message(STATUS "USE_EPOLL: ${USE_EPOLL}")
 
 add_executable(server src/main.cpp src/net/socket.c)
 target_include_directories(server PRIVATE src)
+
+add_executable(client src/client.c)
