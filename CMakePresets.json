@@ -3,32 +3,81 @@
   "configurePresets": [
     {
       "name": "mac-debug",
-      "displayName": "macOS Debug (AppleClang)",
+      "displayName": "macOS Debug (AppleClang, poll backend)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/mac-debug",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USE_EPOLL": "OFF"
       }
     },
     {
       "name": "mac-release",
-      "displayName": "macOS Release (AppleClang)",
+      "displayName": "macOS Release (AppleClang, poll backend)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/mac-release",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_EPOLL": "OFF"
+      }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux Debug (GCC/Clang in VM, poll backend)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USE_EPOLL": "OFF"
+      }
+    },
+    {
+      "name": "linux-epoll",
+      "displayName": "Linux Release (GCC/Clang in VM, epoll backend)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/linux-epoll",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "USE_EPOLL": "ON"
       }
     },
     {
       "name": "asan",
-      "displayName": "macOS ASan+UBSan",
+      "displayName": "AddressSanitizer (Mac + Linux)",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/asan",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
-        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
-        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address,undefined"
+        "USE_EPOLL": "OFF",
+        "CMAKE_C_FLAGS": "-fsanitize=address -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=address"
+      }
+    },
+    {
+      "name": "ubsan",
+      "displayName": "UndefinedBehaviorSanitizer (Mac + Linux)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/ubsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USE_EPOLL": "OFF",
+        "CMAKE_C_FLAGS": "-fsanitize=undefined -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=undefined -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=undefined"
+      }
+    },
+    {
+      "name": "tsan",
+      "displayName": "ThreadSanitizer (Linux VM primarily)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/tsan",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "USE_EPOLL": "OFF",
+        "CMAKE_C_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=thread -fno-omit-frame-pointer",
+        "CMAKE_EXE_LINKER_FLAGS": "-fsanitize=thread"
       }
     }
   ]

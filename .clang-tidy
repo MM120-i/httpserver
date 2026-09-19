@@ -1,0 +1,18 @@
+# .clang-tidy — enforced on Linux CI / local once LLVM is available.
+# Check (Linux): clang-tidy <files> -- -std=c++20
+Checks: >
+  bugprone-*,
+  modernize-*,
+  performance-*,
+  readability-*,
+  -modernize-use-trailing-return-type,
+  -readability-magic-numbers
+WarningsAsErrors: true
+HeaderFilterRegex: 'src/.*'
+CheckOptions:
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
