@@ -1,0 +1,11 @@
+{
+  "cmake.configureOnOpen": true,
+  "cmake.generator": "Ninja",
+  "cmake.configureArgs": [],
+  "cmake.buildDirectory": "${workspaceFolder}/build/mac-debug",
+  "C_Cpp.default.cppStandard": "c++20",
+  "C_Cpp.default.cStandard": "c11",
+  "files.exclude": {
+    "build/": true
+  }
+}

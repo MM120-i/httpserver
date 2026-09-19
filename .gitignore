@@ -1,0 +1,54 @@
+# Build dirs
+build/
+build-*/
+cmake-build-*/
+out/
+
+# CMake cache
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+_CPack_Packages/
+*.cmake --exclude=CMakeLists.txt --exclude=CMakePresets.json
+!CMakeLists.txt
+!CMakePresets.json
+
+# Compiled objects / binaries
+*.o
+*.obj
+*.a
+*.so
+*.dylib
+*.exe
+server
+httpserver
+*_tests
+tests_runner
+
+# Sanitizer / profiler output
+*.prof
+*.profraw
+*.profdata
+perf.data
+perf.data.old
+gmon.out
+*.dSYM/
+
+# Lima / VM
+.lima/
+
+# IDE
+.vscode/ipch/
+*.code-workspace.bak
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / bench output
+*.log
+docs/bench_results/
+
+# others
+plan.txt
