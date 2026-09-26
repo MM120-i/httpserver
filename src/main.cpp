@@ -8,19 +8,18 @@
 #include <sys/socket.h>
 
 namespace {
-constexpr unsigned short k_port = 8000;
-constexpr int k_backlog = 16;
+    constexpr unsigned short k_port = 8000;
+    constexpr int k_backlog = 16;
 
-const std::string_view k_response = "HTTP/1.1 200 OK\r\n"
-                                    "Content-Length: 13\r\n"
-                                    "Content-Type: text/plain\r\n"
-                                    "Connection: close\r\n"
-                                    "\r\n"
-                                    "Hello, world!";
-} // namespace
+    const std::string_view k_response = "HTTP/1.1 200 OK\r\n"
+                                        "Content-Length: 13\r\n"
+                                        "Content-Type: text/plain\r\n"
+                                        "Connection: close\r\n"
+                                        "\r\n"
+                                        "Hello, world!";
+} 
 
-int
-main() {
+int main() {
     Socket listener(tcp_create());
 
     if (!listener.valid()) {
@@ -38,6 +37,12 @@ main() {
         return EXIT_FAILURE;
     }
 
+    int snd_buf = 0;
+    int rcv_buf = 0;
+
+    if(tcp_buffer_sizes(listener.get(), &snd_buf, &rcv_buf) == 0)
+        std::printf("socket buffers: send = %d recv = %d bytes\n", snd_buf, rcv_buf);
+
     std::printf("Listening on 0.0.0.0:%d (Ctrl + C to stop)\n", k_port);
 
     while (true) {
@@ -48,19 +53,22 @@ main() {
             continue;
         }
 
+        char peer[64] = {0};
+
+        if(tcp_peer_name(client.get(), peer, sizeof(peer)) == 0)
+            std::printf("[%s] connected\n", peer);
+
         char buf[4096];
         const ssize_t bytes_received = recv(client.get(), buf, sizeof(buf), 0);
 
-        if (bytes_received <= 0) {
+        if (bytes_received <= 0) 
             continue;
-        }
 
         std::fwrite(buf, 1, (size_t)bytes_received, stdout);
         std::fflush(stdout);
 
-        if (tcp_send_all(client.get(), k_response.data(), k_response.size()) == -1) {
+        if (tcp_send_all(client.get(), k_response.data(), k_response.size()) == -1) 
             std::perror("send");
-        }
     }
 
     return EXIT_SUCCESS;
