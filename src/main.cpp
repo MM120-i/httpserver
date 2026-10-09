@@ -1,3 +1,4 @@
+#include "http/parser.h"
 #include "net/socket.h"
 #include "net/socket.hpp"
 
@@ -18,6 +19,24 @@ namespace {
                                         "\r\n"
                                         "Hello, world!";
 } 
+
+constexpr std::string_view k400 = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+constexpr std::string_view k413 = "HTTP/1.1 413 Content Too Large\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
+
+// Full response builder arrives in Phase 5; these constants are the stopgap.
+constexpr std::string_view status_response(http_parse_error_t err) {
+    switch (err) {
+        case HTTP_PARSE_OK:
+            return k_response;
+        case HTTP_PARSE_BODY_TOO_LARGE:
+        case HTTP_PARSE_REQUEST_TOO_LARGE:
+        case HTTP_PARSE_HEADER_TOO_LARGE:
+        case HTTP_PARSE_URI_TOO_LONG:
+            return k413;
+        default:
+            return k400;  
+    }
+}
 
 int main() {
     Socket listener(tcp_create());
@@ -58,7 +77,7 @@ int main() {
         if(tcp_peer_name(client.get(), peer, sizeof(peer)) == 0)
             std::printf("[%s] connected\n", peer);
 
-        char buf[4096];
+        char buf[HTTP_MAX_REQUEST_SIZE + 1];
         const ssize_t bytes_received = recv(client.get(), buf, sizeof(buf), 0);
 
         if (bytes_received <= 0) 
@@ -67,7 +86,15 @@ int main() {
         std::fwrite(buf, 1, (size_t)bytes_received, stdout);
         std::fflush(stdout);
 
-        if (tcp_send_all(client.get(), k_response.data(), k_response.size()) == -1) 
+        http_request_t request;
+        const http_parse_error_t err = http_parse(buf, (size_t)bytes_received, &request);
+
+        if (err != HTTP_PARSE_OK)
+            std::fprintf(stderr, "bad request from [%s]: err=%d\n", peer, (int)err);
+
+        const std::string_view response = status_response(err);
+
+        if (tcp_send_all(client.get(), response.data(), response.size()) == -1)
             std::perror("send");
     }
 

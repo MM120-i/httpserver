@@ -5,6 +5,10 @@
   "cmake.buildDirectory": "${workspaceFolder}/build/mac-debug",
   "C_Cpp.default.cppStandard": "c++20",
   "C_Cpp.default.cStandard": "c11",
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "clangd.arguments": [
+    "--compile-commands-dir=${workspaceFolder}/build/mac-debug"
+  ],
   "files.exclude": {
     "build/": true
   }

@@ -7,7 +7,7 @@ PORT      := 8000
 SOURCES := $(shell find src tests -type f \( -name '*.c' -o -name '*.h' -o -name '*.cpp' -o -name '*.hpp' \) 2>/dev/null)
 
 .DEFAULT_GOAL := help
-.PHONY: help configure build rebuild run client test asan ubsan tsan \
+.PHONY: help configure build rebuild run client test unit asan ubsan tsan \
         format format-check tidy clean linux-build linux-test debug
 
 help: 
@@ -16,6 +16,7 @@ help:
 	@echo "  run          build + run server (Ctrl+C stops, port $(PORT))"
 	@echo "  client       run the C client (needs server up)"
 	@echo "  test         build + Phase 1 integration tests (8 checks over TCP)"
+	@echo "  unit         build + Catch2 unit tests via CTest"
 	@echo "  asan/ubsan/tsan  build with sanitizer + integration tests"
 	@echo "  format       clang-format all sources in place"
 	@echo "  format-check fail if any source is not clang-formatted"
@@ -46,7 +47,10 @@ client: build
 # survival, sanitizer-log scan). Catch2 unit tests arrive in Phase 3.
 
 test: build
-	bash tests/integration_phase1.sh $(SERVER) $(CLIENT) $(PORT) 
+	bash tests/integration_phase1.sh $(SERVER) $(CLIENT) $(PORT)
+
+unit: build ## Build + run Catch2 unit tests via CTest
+	ctest --test-dir $(BUILD_DIR) --output-on-failure 
 	
 asan: 
 	@$(MAKE) build PRESET=asan

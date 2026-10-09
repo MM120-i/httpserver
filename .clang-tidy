@@ -6,6 +6,9 @@ Checks: >
   performance-*,
   readability-*,
   -readability-identifier-length,
+  -readability-braces-around-statements,
+  -modernize-avoid-c-arrays,
+  -modernize-use-using,
   -modernize-use-trailing-return-type,
   -readability-magic-numbers
 WarningsAsErrors: true

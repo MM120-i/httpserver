@@ -19,6 +19,7 @@ compiler) → **build** (compile) → **run/test** (execute + check).
 | `make run` | Builds, then starts `./build/mac-debug/bin/server` in the foreground on port 8000. Stops with Ctrl+C. | To manually try the server with curl/browser. |
 | `make client` | Builds, then runs the tiny C client, which sends one `GET /` request and prints the raw reply. The server must already be running (see `make run`). | To test the server without curl. |
 | `make test` | Builds, then runs `tests/integration_phase1.sh`: 8 checks over real TCP (status line, Content-Length vs body bytes, exact body, second connection, C client, survival of garbage input, survival of empty connection, sanitizer-log scan). Prints PASS/FAIL per check, exits non-zero on any failure. | The one command that answers "does it still work?". Run after every change. |
+| `make unit` | Builds, then runs Catch2 unit tests via CTest (`parser_tests`: parser cases + mini-fuzz). | After touching `src/http/` or `tests/`. |
 
 ## Builds (the `PRESET=` part)
 
