@@ -1,11 +1,11 @@
 #include "socket.h"
 
+#include <arpa/inet.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
 #include <unistd.h>
 
 int tcp_create(void) {
@@ -69,7 +69,7 @@ int tcp_send_all(int socket_fd, const char* buf, size_t len) {
 #ifdef MSG_NOSIGNAL
         const int flags = MSG_NOSIGNAL;
 #else
-        const int flags = 0; 
+        const int flags = 0;
 #endif
         const ssize_t n = send(socket_fd, buf + sent, len - sent, flags);
 
@@ -87,17 +87,17 @@ int tcp_close(int socket_fd) {
     return close(socket_fd);
 }
 
-int tcp_peer_name(int fd, char *buf, int len){
+int tcp_peer_name(int fd, char* buf, int len) {
     struct sockaddr_in addr = {0};
     socklen_t addr_len = sizeof(addr);
 
-    if(getpeername(fd, (struct sockaddr *)&addr, &addr_len) == -1){
+    if (getpeername(fd, (struct sockaddr*)&addr, &addr_len) == -1) {
         return -1;
     }
 
     char ip[INET_ADDRSTRLEN] = {0};
 
-    if(inet_ntop(AF_INET, &addr.sin_addr, ip, sizeof(ip)) == NULL){
+    if (inet_ntop(AF_INET, &addr.sin_addr, ip, sizeof(ip)) == NULL) {
         return -1;
     }
 
@@ -105,16 +105,16 @@ int tcp_peer_name(int fd, char *buf, int len){
     return 0;
 }
 
-int tcp_buffer_sizes(int fd, int *send_size, int *recv_size){
+int tcp_buffer_sizes(int fd, int* send_size, int* recv_size) {
     socklen_t opt_len = sizeof(*send_size);
 
-    if(getsockopt(fd, SOL_SOCKET, SO_SNDBUF, send_size, &opt_len) == -1){
+    if (getsockopt(fd, SOL_SOCKET, SO_SNDBUF, send_size, &opt_len) == -1) {
         return -1;
     }
 
     opt_len = sizeof(*recv_size);
 
-    if(getsockopt(fd, SOL_SOCKET, SO_RCVBUF, recv_size, &opt_len) == -1){
+    if (getsockopt(fd, SOL_SOCKET, SO_RCVBUF, recv_size, &opt_len) == -1) {
         return -1;
     }
 

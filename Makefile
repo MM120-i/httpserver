@@ -18,8 +18,6 @@ help:
 	@echo "  test         build + Phase 1 integration tests (8 checks over TCP)"
 	@echo "  unit         build + Catch2 unit tests via CTest"
 	@echo "  asan/ubsan/tsan  build with sanitizer + integration tests"
-	@echo "  format       clang-format all sources in place"
-	@echo "  format-check fail if any source is not clang-formatted"
 	@echo "  tidy         clang-tidy (skips gracefully if not installed)"
 	@echo "  linux-build  configure + compile inside Ubuntu 24.04 container"
 	@echo "  linux-test   linux-build + run server+client inside container"
@@ -42,14 +40,10 @@ run: build
 client: build 
 	$(CLIENT)
 
-# Phase 1 integration tests live in tests/integration_phase1.sh (real TCP:
-# status line, Content-Length, body, accept loop, C client, bad-client
-# survival, sanitizer-log scan). Catch2 unit tests arrive in Phase 3.
-
 test: build
 	bash tests/integration_phase1.sh $(SERVER) $(CLIENT) $(PORT)
 
-unit: build ## Build + run Catch2 unit tests via CTest
+unit: build 
 	ctest --test-dir $(BUILD_DIR) --output-on-failure 
 	
 asan: 
@@ -63,13 +57,6 @@ ubsan:
 tsan: 
 	@$(MAKE) build PRESET=tsan
 	bash tests/integration_phase1.sh build/tsan/bin/server build/tsan/bin/client $(PORT)
-
-format:
-	clang-format -i $(SOURCES)
-	@echo "formatted $(words $(SOURCES)) files"
-
-format-check: 
-	clang-format --dry-run --Werror $(SOURCES) && echo "format clean"
 
 tidy: build 
 	@command -v clang-tidy >/dev/null 2>&1 || { echo "clang-tidy not installed (needs full LLVM) — skipping"; exit 0; }
