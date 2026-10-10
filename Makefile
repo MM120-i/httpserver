@@ -70,7 +70,7 @@ linux-build:
 	@docker info >/dev/null 2>&1 || { echo "Docker daemon is down — open Docker Desktop first"; exit 1; }
 	rm -rf build/linux-debug
 	docker run --rm -v "$(PWD):/work" -w /work ubuntu:24.04 bash -c \
-		"apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc g++ cmake ninja-build >/dev/null 2>&1 && cmake --preset linux-debug && cmake --build build/linux-debug"
+		"apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc g++ cmake ninja-build catch2 >/dev/null 2>&1 && cmake --preset linux-debug && cmake --build build/linux-debug"
 
 linux-test: linux-build 
 	docker run --rm -v "$(PWD):/work" -w /work ubuntu:24.04 bash -c \
