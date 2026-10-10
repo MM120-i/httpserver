@@ -1,0 +1,102 @@
+# Phase 27 (early): build + unit + integration on every push/PR.
+# Matrix covers both OSes, both compilers on Linux, and all sanitizers.
+# Format/tidy jobs come later (code isn't clang-formatted yet by design).
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} / ${{ matrix.preset }} (${{ matrix.compiler }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      # See every leg's result, not just the first failure.
+      fail-fast: false
+      matrix:
+        include:
+          # --- macOS (AppleClang) ---
+          - os: macos-latest
+            preset: mac-debug
+            compiler: clang
+            cc: cc
+            cxx: c++
+          - os: macos-latest
+            preset: mac-release
+            compiler: clang
+            cc: cc
+            cxx: c++
+          - os: macos-latest
+            preset: asan
+            compiler: clang
+            cc: cc
+            cxx: c++
+          - os: macos-latest
+            preset: ubsan
+            compiler: clang
+            cc: cc
+            cxx: c++
+          # --- Linux (GCC + Clang) ---
+          - os: ubuntu-latest
+            preset: linux-debug
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            preset: linux-epoll
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            preset: linux-debug
+            compiler: clang
+            cc: clang
+            cxx: clang++
+          - os: ubuntu-latest
+            preset: asan
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            preset: ubsan
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            preset: tsan
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install deps (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja catch2
+
+      - name: Install deps (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build catch2 ${{ matrix.compiler == 'clang' && 'clang' || 'g++' }}
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+
+      - name: Build
+        run: cmake --build build/${{ matrix.preset }}
+
+      - name: Unit tests (CTest)
+        run: ctest --test-dir build/${{ matrix.preset }} --output-on-failure
+
+      - name: Integration tests (real TCP)
+        run: >
+          bash tests/integration_phase1.sh
+          build/${{ matrix.preset }}/bin/server
+          build/${{ matrix.preset }}/bin/client 8000
