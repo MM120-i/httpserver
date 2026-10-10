@@ -7,7 +7,7 @@ PORT      := 8000
 SOURCES := $(shell find src tests -type f \( -name '*.c' -o -name '*.h' -o -name '*.cpp' -o -name '*.hpp' \) 2>/dev/null)
 
 .DEFAULT_GOAL := help
-.PHONY: help configure build rebuild run client test asan ubsan tsan \
+.PHONY: help configure build rebuild run client test unit asan ubsan tsan \
         format format-check tidy clean linux-build linux-test debug
 
 help: 
@@ -16,9 +16,8 @@ help:
 	@echo "  run          build + run server (Ctrl+C stops, port $(PORT))"
 	@echo "  client       run the C client (needs server up)"
 	@echo "  test         build + Phase 1 integration tests (8 checks over TCP)"
+	@echo "  unit         build + Catch2 unit tests via CTest"
 	@echo "  asan/ubsan/tsan  build with sanitizer + integration tests"
-	@echo "  format       clang-format all sources in place"
-	@echo "  format-check fail if any source is not clang-formatted"
 	@echo "  tidy         clang-tidy (skips gracefully if not installed)"
 	@echo "  linux-build  configure + compile inside Ubuntu 24.04 container"
 	@echo "  linux-test   linux-build + run server+client inside container"
@@ -41,12 +40,11 @@ run: build
 client: build 
 	$(CLIENT)
 
-# Phase 1 integration tests live in tests/integration_phase1.sh (real TCP:
-# status line, Content-Length, body, accept loop, C client, bad-client
-# survival, sanitizer-log scan). Catch2 unit tests arrive in Phase 3.
-
 test: build
-	bash tests/integration_phase1.sh $(SERVER) $(CLIENT) $(PORT) 
+	bash tests/integration_phase1.sh $(SERVER) $(CLIENT) $(PORT)
+
+unit: build 
+	ctest --test-dir $(BUILD_DIR) --output-on-failure 
 	
 asan: 
 	@$(MAKE) build PRESET=asan
@@ -60,13 +58,6 @@ tsan:
 	@$(MAKE) build PRESET=tsan
 	bash tests/integration_phase1.sh build/tsan/bin/server build/tsan/bin/client $(PORT)
 
-format:
-	clang-format -i $(SOURCES)
-	@echo "formatted $(words $(SOURCES)) files"
-
-format-check: 
-	clang-format --dry-run --Werror $(SOURCES) && echo "format clean"
-
 tidy: build 
 	@command -v clang-tidy >/dev/null 2>&1 || { echo "clang-tidy not installed (needs full LLVM) — skipping"; exit 0; }
 	@test -f $(BUILD_DIR)/compile_commands.json || { echo "no compile_commands.json — add CMAKE_EXPORT_COMPILE_COMMANDS=ON to use tidy"; exit 1; }
@@ -79,7 +70,7 @@ linux-build:
 	@docker info >/dev/null 2>&1 || { echo "Docker daemon is down — open Docker Desktop first"; exit 1; }
 	rm -rf build/linux-debug
 	docker run --rm -v "$(PWD):/work" -w /work ubuntu:24.04 bash -c \
-		"apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc g++ cmake ninja-build >/dev/null 2>&1 && cmake --preset linux-debug && cmake --build build/linux-debug"
+		"apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gcc g++ cmake ninja-build catch2 >/dev/null 2>&1 && cmake --preset linux-debug && cmake --build build/linux-debug"
 
 linux-test: linux-build 
 	docker run --rm -v "$(PWD):/work" -w /work ubuntu:24.04 bash -c \
