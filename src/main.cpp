@@ -1,6 +1,9 @@
 #include "http/parser.h"
+#include "http/request.hpp"
+#include "http/response.hpp"
 #include "net/socket.h"
 #include "net/socket.hpp"
+#include "routing/router.hpp"
 
 #include <cstddef>
 #include <cstdio>
@@ -12,31 +15,38 @@ namespace {
     constexpr unsigned short k_port = 8000;
     constexpr int k_backlog = 16;
 
-    const std::string_view k_response = "HTTP/1.1 200 OK\r\n"
-                                        "Content-Length: 13\r\n"
-                                        "Content-Type: text/plain\r\n"
-                                        "Connection: close\r\n"
-                                        "\r\n"
-                                        "Hello, world!";
-} 
-
-constexpr std::string_view k400 = "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-constexpr std::string_view k413 = "HTTP/1.1 413 Content Too Large\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
-
-// Full response builder arrives in Phase 5; these constants are the stopgap.
-constexpr std::string_view status_response(http_parse_error_t err) {
-    switch (err) {
-        case HTTP_PARSE_OK:
-            return k_response;
-        case HTTP_PARSE_BODY_TOO_LARGE:
-        case HTTP_PARSE_REQUEST_TOO_LARGE:
-        case HTTP_PARSE_HEADER_TOO_LARGE:
-        case HTTP_PARSE_URI_TOO_LONG:
-            return k413;
-        default:
-            return k400;  
+    HttpResponse home_handler(const HttpRequest &){
+        return HttpResponse {
+            .status = 200,
+            .body = "Hello, world!",
+            .content_type = "text/plain",
+        };
     }
-}
+
+    HttpResponse status_handler(const HttpRequest &){
+        return HttpResponse {
+          .status = 200,
+          .body = R"({"status":"ok"})",
+          .content_type = "application/json", 
+        };
+    }
+
+    HttpResponse list_users_handler(const HttpRequest &) {
+        return HttpResponse {
+            .status=200, 
+            .body=R"([{"id":1,"name":"ada"}])", 
+            .content_type="application/json"
+        };
+    }
+
+    HttpResponse create_user_handler(const HttpRequest &req){
+        return HttpResponse {
+            .status=201, 
+            .body=req.body, 
+            .content_type="application/json"
+        }; 
+    }
+} 
 
 int main() {
     Socket listener(tcp_create());
@@ -63,6 +73,13 @@ int main() {
         std::printf("socket buffers: send = %d recv = %d bytes\n", snd_buf, rcv_buf);
 
     std::printf("Listening on 0.0.0.0:%d (Ctrl + C to stop)\n", k_port);
+
+    Router router;
+
+    router.get("/", home_handler);
+    router.get("/status", status_handler);
+    router.get("/users", list_users_handler);
+    router.post("/users", create_user_handler);
 
     while (true) {
         Socket client(tcp_accept(listener.get()));
@@ -92,9 +109,28 @@ int main() {
         if (err != HTTP_PARSE_OK)
             std::fprintf(stderr, "bad request from [%s]: err=%d\n", peer, (int)err);
 
-        const std::string_view response = status_response(err);
+        http_parse_error_t perr = HTTP_PARSE_OK;
+        const std::optional<HttpRequest> maybe = parse_http(std::string_view(buf, static_cast<size_t>(bytes_received)), &perr);
+        HttpResponse resp;
 
-        if (tcp_send_all(client.get(), response.data(), response.size()) == -1)
+        if(!maybe){
+            const int status = http_status_for_error(perr);
+            
+            resp = HttpResponse {
+                .status=status, 
+                .body=reason_phrase(status) + "\n", 
+                .content_type="text/plain"
+            };
+
+            std::fprintf(stderr, "bad request from [%s]: err = %d\n", peer, static_cast<int>(perr));
+        }
+        else {
+            resp = router.route(*maybe);
+        }
+
+        const std::string raw = serialize_response(resp);
+
+        if(tcp_send_all(client.get(), raw.data(), raw.size()) == -1)
             std::perror("send");
     }
 
