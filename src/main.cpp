@@ -39,6 +39,7 @@ namespace {
         };
     }
 
+    // Placeholder: echoes the body without validating that it is JSON.
     HttpResponse create_user_handler(const HttpRequest &req){
         return HttpResponse {
             .status=201, 
@@ -102,12 +103,6 @@ int main() {
 
         std::fwrite(buf, 1, (size_t)bytes_received, stdout);
         std::fflush(stdout);
-
-        http_request_t request;
-        const http_parse_error_t err = http_parse(buf, (size_t)bytes_received, &request);
-
-        if (err != HTTP_PARSE_OK)
-            std::fprintf(stderr, "bad request from [%s]: err=%d\n", peer, (int)err);
 
         http_parse_error_t perr = HTTP_PARSE_OK;
         const std::optional<HttpRequest> maybe = parse_http(std::string_view(buf, static_cast<size_t>(bytes_received)), &perr);

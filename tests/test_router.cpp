@@ -79,6 +79,26 @@ TEST_CASE("known target, wrong method is 405 with Allow", "[router]") {
     CHECK(both.headers.at("Allow") == "GET, POST");
 }
 
+TEST_CASE("serialize_response rejects header injection", "[router]") {
+    HttpResponse bad_value{200, "hi", "text/plain"};
+    bad_value.headers["X-Evil"] = "v\r\nInjected: yes";
+
+    CHECK(serialize_response(bad_value).starts_with("HTTP/1.1 500"));
+
+    HttpResponse bad_name{200, "hi", "text/plain"};
+    bad_name.headers["X-Evil\r\nInjected"] = "v";
+
+    CHECK(serialize_response(bad_name).starts_with("HTTP/1.1 500"));
+
+    HttpResponse bad_type{200, "hi", "text/plain\nX: y"};
+
+    CHECK(serialize_response(bad_type).starts_with("HTTP/1.1 500"));
+
+    HttpResponse clean{200, "hi", "text/plain"};
+
+    CHECK(serialize_response(clean).starts_with("HTTP/1.1 200"));
+}
+
 TEST_CASE("serialize_response frames correctly", "[router]") {
     const std::string raw = serialize_response(HttpResponse{.status=200, .body="hi", .content_type="text/plain"});
     CHECK(raw == "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nContent-Type: text/plain\r\n" "Connection: close\r\n\r\nhi");

@@ -2,13 +2,14 @@
 
 #include "http/parser.h"
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 struct HttpResponse {
     int status;
     std::string body;
     std::string content_type = "text/plain";
-    std::unordered_map<std::string, std::string> headers;
+    std::unordered_map<std::string, std::string> headers = {};
 };
 
 inline std::string reason_phrase(int status_code){
@@ -24,8 +25,20 @@ inline std::string reason_phrase(int status_code){
     }
 }
 
+inline bool has_crlf(std::string_view text){
+    return text.find('\r') != std::string_view::npos || text.find('\n') != std::string_view::npos;
+}
+
 // This will grow later in phase 5
 inline std::string serialize_response(const HttpResponse &response){
+    bool unsafe = has_crlf(response.content_type);
+
+    for(const auto &[name, value] : response.headers)
+        unsafe = unsafe || has_crlf(name) || has_crlf(value);
+
+    if(unsafe)
+        return "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 22\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nInternal Server Error\n";
+
     std::string out;
     out += "HTTP/1.1 " + std::to_string(response.status) + " " + reason_phrase(response.status) + "\r\n";
     out += "Content-Length: " + std::to_string(response.body.size()) + "\r\n";
