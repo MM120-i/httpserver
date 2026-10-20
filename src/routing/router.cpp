@@ -36,9 +36,9 @@ HttpResponse Router::route(const HttpRequest &req) const {
 
     if(!allow.empty()){
         HttpResponse res{
-            .status=405, 
-            .body=reason_phrase(405) + "\n", 
-            .content_type="text/plain"
+            .status = 405, 
+            .body = reason_phrase(405) + "\n", 
+            .content_type = "text/plain"
         };
 
         res.headers["Allow"] = allow;
@@ -46,9 +46,9 @@ HttpResponse Router::route(const HttpRequest &req) const {
     }
 
     return HttpResponse{
-        .status=404, 
-        .body=reason_phrase(404) + "\n", 
-        .content_type="text/plain"
+        .status = 404, 
+        .body = reason_phrase(404) + "\n", 
+        .content_type = "text/plain"
     };
 }
 
