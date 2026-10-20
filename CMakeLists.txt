@@ -7,8 +7,6 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Exact compile flags for IDEs (clangd/cpptools) via compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(USE_EPOLL "Use Linux epoll backend instead of portable poll()" OFF)
@@ -21,7 +19,7 @@ message(STATUS "C compiler: ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "CXX compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "USE_EPOLL: ${USE_EPOLL}")
 
-add_executable(server src/main.cpp src/net/socket.c src/http/parser.c)
+add_executable(server src/main.cpp src/net/socket.c src/http/parser.c src/routing/router.cpp)
 target_include_directories(server PRIVATE src)
 
 add_executable(client src/client.c)
@@ -34,3 +32,8 @@ target_link_libraries(parser_tests PRIVATE Catch2::Catch2WithMain)
 
 enable_testing()
 add_test(NAME parser_tests COMMAND parser_tests)
+
+add_executable(router_tests tests/test_router.cpp src/routing/router.cpp)
+target_include_directories(router_tests PRIVATE src)
+target_link_libraries(router_tests PRIVATE Catch2::Catch2WithMain)
+add_test(NAME router_tests COMMAND router_tests)
