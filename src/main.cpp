@@ -16,36 +16,19 @@ namespace {
     constexpr int k_backlog = 16;
 
     HttpResponse home_handler(const HttpRequest &){
-        return HttpResponse {
-            .status = 200,
-            .body = "Hello, world!",
-            .content_type = "text/plain",
-        };
+        return make_response(200, "Hello, world!");
     }
 
     HttpResponse status_handler(const HttpRequest &){
-        return HttpResponse {
-          .status = 200,
-          .body = R"({"status":"ok"})",
-          .content_type = "application/json", 
-        };
+        return make_response(200, R"({"status":"ok"})", "application/json");
     }
 
-    HttpResponse list_users_handler(const HttpRequest &) {
-        return HttpResponse {
-            .status=200, 
-            .body=R"([{"id":1,"name":"ada"}])", 
-            .content_type="application/json"
-        };
+    HttpResponse list_users_handler(const HttpRequest &){
+        return make_response(200, R"([{"id":1,"name":"ada"}])", "application/json");
     }
 
-    // Placeholder: echoes the body without validating that it is JSON.
     HttpResponse create_user_handler(const HttpRequest &req){
-        return HttpResponse {
-            .status=201, 
-            .body=req.body, 
-            .content_type="application/json"
-        }; 
+        return make_response(201, req.body, "application/json");
     }
 } 
 
@@ -110,13 +93,7 @@ int main() {
 
         if(!maybe){
             const int status = http_status_for_error(perr);
-            
-            resp = HttpResponse {
-                .status=status, 
-                .body=reason_phrase(status) + "\n", 
-                .content_type="text/plain"
-            };
-
+            resp = make_response(status, reason_phrase(status) + "\n");
             std::fprintf(stderr, "bad request from [%s]: err = %d\n", peer, static_cast<int>(perr));
         }
         else {

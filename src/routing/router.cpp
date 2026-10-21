@@ -35,20 +35,11 @@ HttpResponse Router::route(const HttpRequest &req) const {
         allow += allow.empty() ? "POST" : ", POST";
 
     if(!allow.empty()){
-        HttpResponse res{
-            .status = 405, 
-            .body = reason_phrase(405) + "\n", 
-            .content_type = "text/plain"
-        };
-
+        HttpResponse res = make_response(405, reason_phrase(405) + "\n");
         res.headers["Allow"] = allow;
         return res;
     }
 
-    return HttpResponse{
-        .status = 404, 
-        .body = reason_phrase(404) + "\n", 
-        .content_type = "text/plain"
-    };
+    return make_response(404, reason_phrase(404) + "\n");
 }
 
