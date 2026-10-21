@@ -19,11 +19,10 @@ message(STATUS "C compiler: ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "CXX compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "USE_EPOLL: ${USE_EPOLL}")
 
-add_executable(server src/main.cpp src/net/socket.c src/http/parser.c src/routing/router.cpp)
+add_executable(server src/main.cpp src/net/socket.c src/http/parser.c src/http/response.cpp src/routing/router.cpp)
 target_include_directories(server PRIVATE src)
 
 add_executable(client src/client.c)
-
 find_package(Catch2 3 REQUIRED)
 
 add_executable(parser_tests tests/test_parser.cpp src/http/parser.c)
@@ -33,7 +32,7 @@ target_link_libraries(parser_tests PRIVATE Catch2::Catch2WithMain)
 enable_testing()
 add_test(NAME parser_tests COMMAND parser_tests)
 
-add_executable(router_tests tests/test_router.cpp src/routing/router.cpp)
+add_executable(router_tests tests/test_router.cpp src/http/response.cpp src/routing/router.cpp)
 target_include_directories(router_tests PRIVATE src)
 target_link_libraries(router_tests PRIVATE Catch2::Catch2WithMain)
 add_test(NAME router_tests COMMAND router_tests)
