@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <string_view>
 #include <sys/socket.h>
+#include <system_error>
 #include <thread>
 #include <utility>
 
@@ -109,9 +110,14 @@ int main() {
             continue;
         }
 
-        std::thread([client = std::move(client), &router]() mutable {
-            handle_client(std::move(client), router);
-        }).detach();
+        try {
+            std::thread([client = std::move(client), &router]() mutable {
+                handle_client(std::move(client), router);
+            }).detach();
+        }
+        catch (const std::system_error &error) {
+            std::fprintf(stderr, "thread creation failed: %s\n", error.what());
+        }
     }
 
     return EXIT_SUCCESS;
