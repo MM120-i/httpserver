@@ -4,19 +4,21 @@
 #include "net/socket.h"
 #include "net/socket.hpp"
 #include "routing/router.hpp"
+#include "concurrency/thread_pool.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
 #include <string_view>
 #include <sys/socket.h>
-#include <system_error>
 #include <thread>
 #include <utility>
+#include <memory>
 
 namespace {
     constexpr unsigned short k_port = 8000;
-    constexpr int k_backlog = 16;
+    constexpr int k_backlog = 128;
 
     HttpResponse home_handler(const HttpRequest &){
         return make_response(200, "Hello, world!");
@@ -102,22 +104,25 @@ int main() {
     router.get("/users", list_users_handler);
     router.post("/users", create_user_handler);
 
+    size_t worker_count = std::thread::hardware_concurrency();
+    worker_count = std::max<size_t>(worker_count, 4);
+    ThreadPool pool(worker_count);
+    std::printf("Worker threads: %zu\n", worker_count);
+    
     while (true) {
-        Socket client(tcp_accept(listener.get()));
+        auto client = std::make_shared<Socket>(tcp_accept(listener.get()));
 
-        if (!client.valid()) {
+        if(!client->valid()){
             std::perror("accept");
             continue;
         }
 
-        try {
-            std::thread([client = std::move(client), &router]() mutable {
-                handle_client(std::move(client), router);
-            }).detach();
-        }
-        catch (const std::system_error &error) {
-            std::fprintf(stderr, "thread creation failed: %s\n", error.what());
-        }
+        const bool queued = pool.submit([client, &router]{
+            handle_client(std::move(*client), router);
+        });
+
+        if(!queued)
+            std::fprintf(stderr, "Pool stopped, dropping connections.\n");
     }
 
     return EXIT_SUCCESS;

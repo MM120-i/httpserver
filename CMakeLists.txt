@@ -20,7 +20,7 @@ message(STATUS "C compiler: ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
 message(STATUS "CXX compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}")
 message(STATUS "USE_EPOLL: ${USE_EPOLL}")
 
-add_executable(server src/main.cpp src/net/socket.c src/http/parser.c src/http/response.cpp src/routing/router.cpp)
+add_executable(server src/main.cpp src/net/socket.c src/http/parser.c src/http/response.cpp src/routing/router.cpp src/concurrency/thread_pool.cpp)
 target_include_directories(server PRIVATE src)
 target_link_libraries(server PRIVATE Threads::Threads)
 
@@ -39,6 +39,12 @@ add_executable(router_tests tests/test_router.cpp src/http/response.cpp src/rout
 target_include_directories(router_tests PRIVATE src)
 target_link_libraries(router_tests PRIVATE Catch2::Catch2WithMain)
 add_test(NAME router_tests COMMAND router_tests)
+
+add_executable(thread_pool_tests tests/test_thread_pool.cpp
+               src/concurrency/thread_pool.cpp)
+target_include_directories(thread_pool_tests PRIVATE src)
+target_link_libraries(thread_pool_tests PRIVATE Catch2::Catch2WithMain Threads::Threads)
+add_test(NAME thread_pool_tests COMMAND thread_pool_tests)
 
 add_executable(race_demo tests/race_demo.cpp)
 target_link_libraries(race_demo PRIVATE Threads::Threads)
