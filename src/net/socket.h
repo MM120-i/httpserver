@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <sys/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -8,6 +9,9 @@ extern "C" {
 
     int tcp_create(void);
     int tcp_set_reuseaddr(int socket_fd);
+    int tcp_set_nonblocking(int socket_fd);
+    int tcp_set_blocking(int socket_fd);
+    ssize_t tcp_recv(int socket_fd, void *buf, size_t len);
     int tcp_bind(int socket_fd, unsigned short port);
     int tcp_listen(int socket_fd, int backlog);
     int tcp_accept(int listener_fd);

@@ -48,3 +48,8 @@ add_test(NAME thread_pool_tests COMMAND thread_pool_tests)
 
 add_executable(race_demo tests/race_demo.cpp)
 target_link_libraries(race_demo PRIVATE Threads::Threads)
+
+add_executable(socket_io_tests tests/test_socket_io.cpp src/net/socket.c)
+target_include_directories(socket_io_tests PRIVATE src)
+target_link_libraries(socket_io_tests PRIVATE Catch2::Catch2WithMain)
+add_test(NAME socket_io_tests COMMAND socket_io_tests)

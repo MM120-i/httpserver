@@ -44,7 +44,7 @@ void handle_client(Socket client, const Router &router){
         std::printf("[%s] connected\n", peer);
 
     char buf[HTTP_MAX_REQUEST_SIZE + 1];
-    const ssize_t bytes_received = recv(client.get(), buf, sizeof(buf), 0);
+    const ssize_t bytes_received = tcp_recv(client.get(), buf, sizeof(buf));
 
     if(bytes_received <= 0)
         return;

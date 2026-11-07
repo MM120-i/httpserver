@@ -2,6 +2,7 @@
 
 #include <arpa/inet.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -73,11 +74,15 @@ int tcp_send_all(int socket_fd, const char* buf, size_t len) {
 #endif
         const ssize_t n = send(socket_fd, buf + sent, len - sent, flags);
 
-        if (n <= 0) {
-            return -1;
+        if (n > 0) {
+            sent += (size_t)n;
+            continue;
         }
 
-        sent += (size_t)n;
+        if(n == -1 && errno == EINTR)
+            continue;
+
+        return -1;
     }
 
     return 0;
@@ -119,4 +124,36 @@ int tcp_buffer_sizes(int fd, int* send_size, int* recv_size) {
     }
 
     return 0;
+}
+
+int tcp_set_nonblocking(int socket_fd){
+    const int flags = fcntl(socket_fd, F_GETFL, 0);
+
+    if(flags == -1)
+        return -1;
+
+    return fcntl(socket_fd, F_SETFL, flags | O_NONBLOCK);
+}
+
+int tcp_set_blocking(int socket_fd){
+    const int flags = fcntl(socket_fd, F_GETFL, 0);
+
+    if(flags == -1)
+        return -1;
+
+    return fcntl(socket_fd, F_SETFL, flags & ~O_NONBLOCK);
+}
+
+ssize_t tcp_recv(int socket_fd, void *buf, size_t len) {
+    while(1) {
+        const ssize_t n = recv(socket_fd, buf, len, 0);
+
+        if(n >= 0)
+            return n;
+
+        if(errno == EINTR)
+            continue;
+
+        return -1;
+    }
 }
