@@ -137,6 +137,11 @@ bool Poller::add(int fd, PollEvent events, Trigger trigger){
     if(!valid())
         return false;
 
+    if(fd < 0){
+        errno = EBADF;
+        return false;
+    }
+
     if(events == PollEvent::None){
         errno = EINVAL;
         return false;

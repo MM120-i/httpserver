@@ -22,6 +22,7 @@
 namespace {
     constexpr unsigned short k_port = 8000;
     constexpr int k_backlog = 128;
+    constexpr int k_accept_batch = 32;
 
     HttpResponse home_handler(const HttpRequest &){
         return make_response(200, "Hello, world!");
@@ -140,7 +141,8 @@ int main() {
 
         for(const ReadyEvent &event : ready){
             if(event.fd == listener.get()){
-                while(true){
+                // Bound the batch so a connection flood cannot starve other ready fds.
+                for(int accepted = 0; accepted < k_accept_batch; accepted++){
                     const int client_fd = tcp_accept(listener.get());
 
                     if(client_fd == -1){

@@ -22,6 +22,15 @@ namespace {
     };
 }
 
+TEST_CASE("poller rejects negative descriptors", "[poller]"){
+    Poller poller;
+    REQUIRE(poller.valid());
+
+    errno = 0;
+    CHECK_FALSE(poller.add(-1, PollEvent::Read));
+    CHECK(errno == EBADF);
+}
+
 TEST_CASE("poller reports readable and writable sockets", "[poller]"){
     SocketPair pair;
     Poller poller;
