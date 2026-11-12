@@ -3,10 +3,12 @@
 #include "http/response.hpp"
 #include "net/socket.h"
 #include "net/socket.hpp"
+#include "net/poller.hpp"
 #include "routing/router.hpp"
 #include "concurrency/thread_pool.hpp"
 
 #include <algorithm>
+#include <cerrno>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
@@ -15,10 +17,12 @@
 #include <thread>
 #include <utility>
 #include <memory>
+#include <vector>
 
 namespace {
     constexpr unsigned short k_port = 8000;
     constexpr int k_backlog = 128;
+    constexpr int k_accept_batch = 32;
 
     HttpResponse home_handler(const HttpRequest &){
         return make_response(200, "Hello, world!");
@@ -44,7 +48,7 @@ void handle_client(Socket client, const Router &router){
         std::printf("[%s] connected\n", peer);
 
     char buf[HTTP_MAX_REQUEST_SIZE + 1];
-    const ssize_t bytes_received = recv(client.get(), buf, sizeof(buf), 0);
+    const ssize_t bytes_received = tcp_recv(client.get(), buf, sizeof(buf));
 
     if(bytes_received <= 0)
         return;
@@ -89,6 +93,24 @@ int main() {
         return EXIT_FAILURE;
     }
 
+    if(tcp_set_nonblocking(listener.get()) == -1){
+        std::perror("fcntl");
+        return EXIT_FAILURE;
+    }
+
+    Poller poller;
+
+    if(!poller.valid()){
+        std::perror("poller");
+        return EXIT_FAILURE;
+    }
+
+    if(!poller.add(listener.get(), PollEvent::Read)){
+        std::perror("poller add");
+        return EXIT_FAILURE;
+    }
+
+
     int snd_buf = 0;
     int rcv_buf = 0;
 
@@ -108,22 +130,72 @@ int main() {
     worker_count = std::max<size_t>(worker_count, 4);
     ThreadPool pool(worker_count);
     std::printf("Worker threads: %zu\n", worker_count);
-    
-    while (true) {
-        auto client = std::make_shared<Socket>(tcp_accept(listener.get()));
 
-        if(!client->valid()){
-            std::perror("accept");
-            continue;
+    std::vector<ReadyEvent> ready;
+
+    while (true) {
+        if(poller.wait(ready, -1) == -1){
+            std::perror("poller wait");
+            break;
         }
 
-        const bool queued = pool.submit([client, &router]{
-            handle_client(std::move(*client), router);
-        });
+        for(const ReadyEvent &event : ready){
+            if(event.fd == listener.get()){
+                // Bound the batch so a connection flood cannot starve other ready fds.
+                for(int accepted = 0; accepted < k_accept_batch; accepted++){
+                    const int client_fd = tcp_accept(listener.get());
 
-        if(!queued)
-            std::fprintf(stderr, "Pool stopped, dropping connections.\n");
+                    if(client_fd == -1){
+                        if(errno == EAGAIN || errno == EWOULDBLOCK)
+                            break;
+
+                        std::perror("accept");
+                        break;
+                    }
+
+                    if(tcp_set_nonblocking(client_fd) == -1){
+                        std::perror("fcntl");
+                        tcp_close(client_fd);
+                        continue;
+                    }
+
+                    if(!poller.add(client_fd, PollEvent::Read)){
+                        std::perror("poller add");
+                        tcp_close(client_fd);
+                        continue;
+                    }
+                }
+
+                continue;
+            }
+
+            if(!poller.remove(event.fd)){
+                std::perror("poller remove");
+                tcp_close(event.fd);
+                continue;
+            }
+
+            if(!has_event(event.events, PollEvent::Read)){
+                tcp_close(event.fd);
+                continue;
+            }
+
+            if(tcp_set_blocking(event.fd) == -1){
+                std::perror("fcntl");
+                tcp_close(event.fd);
+                continue;
+            }
+
+            auto client = std::make_shared<Socket>(event.fd);
+
+            const bool queued = pool.submit([client, &router]{
+                handle_client(std::move(*client), router);
+            });
+
+            if(!queued)
+                std::fprintf(stderr, "Pool stopped, dropping connections.\n");
+        }
     }
 
-    return EXIT_SUCCESS;
+    return EXIT_FAILURE;
 }
